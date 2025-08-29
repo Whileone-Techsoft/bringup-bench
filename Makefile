@@ -1,6 +1,6 @@
 define HELP_TEXT
 Please choose one of the following targets:
-  run-tests      - clean, build, and test all benchmarks for the specified TARGET mode (host,standalone,simple,spike,spike-pk)
+  run-tests      - clean, build, and test all benchmarks for the specified TARGET mode (host,standalone,simple,spike)
   all-clean      - clean all benchmark directories for all TARGET modes
   spike-build    - build RISC-V Spike simulator extensions for bringup-bench
 
@@ -13,8 +13,7 @@ Note that benchmark builds must be parameterized with the build MODE, such as:
   TARGET=host       - build benchmarks to run on a Linux host
   TARGET=standalone - build benchmarks to run in standalone mode (a virtual bare-metal CPU)
   TARGET=simple     - build benchmarks to run on the RISC-V Simple_System simulation testing environment
-  TARGET=spike      - build benchmarks to run on the RISC-V 32-bit Spike Instruction Set Simulator (ISS) with Simple_System devices
-  TARGET=spike-pk   - build benchmarks to run on the RISC-V 64-bit Spike Instruction Set Simulator (ISS) with proxy kernel (pk)
+  TARGET=spike      - build benchmarks to run on the RISC-V Spike Instruction Set Simulator (ISS) with Simple_System devices
 
 Example benchmark builds:
   make TARGET=host clean build test
@@ -32,28 +31,41 @@ error:
 #
 # END of user-modifiable variables
 #
-BMARKS = ackermann aes anagram audio-codec avl-tree banner bit-kernels blake2b bloom-filter boyer-moore-search bubble-sort c-interp checkers cipher connect4-minimax convex-hull dhrystone distinctness donut fft-int flood-fill frac-calc fuzzy-match fy-shuffle gcd-list grad-descent graph-tests hanoi heapsort heat-calc huff-encode idct-alg indirect-test k-means kadane kepler knapsack knights-tour life longdiv lu-decomp lz-compress mandelbrot matmult max-subseq mersenne minspan monte-carlo murmur-hash n-queens natlog nbody-sim nr-solver packet-filter parrondo pascal pi-calc primal-test priority-queue quaternions qsort-demo qsort-test quine rabinkarp-search rand-test ransac regex-parser rho-factor rle-compress rsa-cipher sat-solver shortest-path sieve simple-grep skeleton spelt2num spirograph strange sudoku-solver tetris-sim tiny-NN topo-sort totient uniquify vectors-3d weekday
+BMARKS = ackermann anagram audio-codec avl-tree banner bit-kernels blake2b bloom-filter boyer-moore-search bubble-sort c-interp checkers cipher connect4-minimax convex-hull dhrystone distinctness donut fft-int flood-fill frac-calc fuzzy-match fy-shuffle gcd-list grad-descent graph-tests hanoi heapsort heat-calc huff-encode idct-alg indirect-test k-means kadane kepler knapsack knights-tour life longdiv lu-decomp lz-compress mandelbrot matmult max-subseq mersenne minspan monte-carlo murmur-hash n-queens natlog nbody-sim nr-solver packet-filter parrondo pascal pi-calc primal-test priority-queue quaternions qsort-demo qsort-test quine rabinkarp-search rand-test ransac regex-parser rho-factor rle-compress rsa-cipher sat-solver shortest-path sieve simple-grep skeleton spelt2num spirograph stl-rb strange sudoku-solver tetris-sim tiny-NN topo-sort totient uniquify vectors-3d weekday
 
 #OPT_CFLAGS = -O0 -g
-OPT_CFLAGS = -O3 -g
+OPT_CFLAGS = -O3 -g -static -DTIME_REPORT -DPERF
+PREF=/proj/perf/data/compilers/release-20240927-centos7/riscv64-unknown-linux-gnu/bin/riscv64-unknown-linux-gnu-
 
-ifeq ($(TARGET), host)
-TARGET_CC = gcc
-#TARGET_CC = clang
-TARGET_AR = ar
-TARGET_CFLAGS = -DTARGET_HOST
+ifeq ($(TARGET), host_scalar)
+TARGET_CC = riscv64-unknown-linux-gnu-gcc
+#TARGET_CC = ${PREF}clang
+TARGET_AR = riscv64-unknown-linux-gnu-ar
+TARGET_CFLAGS = -DTARGET_HOST -g -O3 -static -march=rv64imafdc_zicsr_zifencei_zba_zbb_zbc_zbs -mabi=lp64d -fno-tree-vectorize
 TARGET_LIBS =
 TARGET_SIM =
 TARGET_DIFF = diff
-TARGET_EXE = $(PROG).host
+TARGET_EXE = $(PROG).host.riscv_scalar
+TARGET_CLEAN =
+TARGET_CONFIGURED = 1
+TARGET_REFEXT = out
+else ifeq ($(TARGET), host_vector)
+TARGET_CC = riscv64-unknown-linux-gnu-gcc
+#TARGET_CC = ${PREF}clang
+TARGET_AR = riscv64-unknown-linux-gnu-ar
+TARGET_CFLAGS = -DTARGET_HOST -g -O3 -static -march=rv64imafdcv_zicsr_zifencei_zba_zbb_zbc_zbs -mabi=lp64d -ftree-vectorizer-verbose=3
+TARGET_LIBS =
+TARGET_SIM = ../akn_run
+TARGET_DIFF = diff
+TARGET_EXE = $(PROG).host.riscv_vector
 TARGET_CLEAN =
 TARGET_CONFIGURED = 1
 TARGET_REFEXT = out
 else ifeq ($(TARGET), standalone)
-TARGET_CC = gcc
+TARGET_CC = ${PREF}gcc
 #TARGET_CC = clang
 TARGET_AR = ar
-TARGET_CFLAGS = -DTARGET_SA
+TARGET_CFLAGS = -DTARGET_SA -march=rv64imafdc_zba_zbb_zbc_zbs -mabi=lp64d
 TARGET_LIBS =
 TARGET_SIM =
 TARGET_DIFF = diff
@@ -71,14 +83,14 @@ TARGET_SIM =
 TARGET_DIFF = diff
 TARGET_EXE = $(PROG).hahost
 TARGET_CLEAN =
-TARGET_EXCLUDES = 
+TARGET_EXCLUDES =
 TARGET_CONFIGURED = 1
 TARGET_REFEXT = hash
 else ifeq ($(TARGET), hashalone-spike)
 TARGET_CC = riscv32-unknown-elf-gcc
 #TARGET_CC = riscv32-unknown-elf-clang
 TARGET_AR = riscv32-unknown-elf-ar
-TARGET_CFLAGS = -DTARGET_HASPIKE -march=rv32imc -mabi=ilp32 -static -mcmodel=medlow -Wall -g -Os -fvisibility=hidden -nostdlib -nostartfiles -ffreestanding # -MMD -mcmodel=medany 
+TARGET_CFLAGS = -DTARGET_HASPIKE -march=rv32imc -mabi=ilp32 -static -mcmodel=medlow -Wall -g -Os -fvisibility=hidden -nostdlib -nostartfiles -ffreestanding
 TARGET_LIBS = -lgcc
 TARGET_SIM = ../../../riscv-isa-sim/build/spike --isa=RV32IMC --extlib=../target/simple_mmio_plugin.so -m0x100000:0x820000 --device=simple_mmio_plugin,0x20000,x
 TARGET_EXE = $(PROG).haspike
@@ -88,10 +100,10 @@ TARGET_CLEAN = *.d ibex_simple_system_pcount.csv
 TARGET_EXCLUDES = anagram c-interp checkers lz-compress rho-factor rsa-cipher spelt2num
 TARGET_REFEXT = hash
 else ifeq ($(TARGET), simple)
-TARGET_CC = riscv32-unknown-elf-gcc
+TARGET_CC = /proj/perf/data/compilers/release-20240927-centos7/riscv64-unknown-elf/bin/riscv64-unknown-elf-gcc
 #TARGET_CC = riscv32-unknown-elf-clang
-TARGET_AR = riscv32-unknown-elf-ar
-TARGET_CFLAGS = -DTARGET_SIMPLE -march=rv32imc -mabi=ilp32 -static -mcmodel=medlow -Wall -g -Os -fvisibility=hidden -nostdlib -nostartfiles -ffreestanding # -MMD -mcmodel=medany
+TARGET_AR = /proj/perf/data/compilers/release-20240927-centos7/riscv64-unknown-elf/bin/riscv64-unknown-elf-ar
+TARGET_CFLAGS = -DTARGET_SIMPLE -DTIME_REPORT -g -O3 -static -march=rv64imafdc_zicsr_zifencei_zba_zbb_zbc_zbs -mabi=lp64d -fvisibility=hidden -nostdlib -nostartfiles -ffreestanding -mcmodel=medany
 TARGET_LIBS = -lgcc
 TARGET_SIM = ../target/simple_sim.sh ../../../ibex/build/lowrisc_ibex_ibex_simple_system_0/sim-verilator/Vibex_simple_system
 TARGET_DIFF = mv ibex_simple_system.log FOO; diff
@@ -104,7 +116,7 @@ else ifeq ($(TARGET), spike)
 TARGET_CC = riscv32-unknown-elf-gcc
 #TARGET_CC = riscv32-unknown-elf-clang
 TARGET_AR = riscv32-unknown-elf-ar
-TARGET_CFLAGS = -DTARGET_SPIKE -march=rv32imc -mabi=ilp32 -static -mcmodel=medlow -Wall -g -Os -fvisibility=hidden -nostdlib -nostartfiles -ffreestanding # -MMD -mcmodel=medany 
+TARGET_CFLAGS = -DTARGET_SPIKE -march=rv32imc -mabi=ilp32 -static -mcmodel=medlow -Wall -g -Os -fvisibility=hidden -nostdlib -nostartfiles -ffreestanding
 TARGET_LIBS = -lgcc
 TARGET_SIM = ../../../riscv-isa-sim/build/spike --isa=RV32IMC --extlib=../target/simple_mmio_plugin.so -m0x100000:0x820000 --device=simple_mmio_plugin,0x20000,x
 TARGET_DIFF = diff
@@ -113,24 +125,12 @@ TARGET_CLEAN = *.d ibex_simple_system_pcount.csv
 TARGET_EXCLUDES = anagram c-interp checkers lz-compress rho-factor rsa-cipher spelt2num
 TARGET_CONFIGURED = 1
 TARGET_REFEXT = out
-else ifeq ($(TARGET), spike-pk)
-TARGET_CC = riscv64-unknown-elf-gcc
-#TARGET_CC = riscv32-unknown-elf-clang
-TARGET_AR = riscv32-unknown-elf-ar
-TARGET_CFLAGS = -DTARGET_SPIKE_PK -DLIBMIN_MALLOC_ALIGN_BYTES=8 -static -mcmodel=medlow -Wall -g -Os -fvisibility=hidden -ffreestanding # -MMD -mcmodel=medany 
-TARGET_LIBS = -lgcc
-TARGET_SIM = spike pk
-TARGET_DIFF = diff
-TARGET_EXE = $(PROG).elf
-TARGET_CLEAN = 
-TARGET_EXCLUDES =
-TARGET_CONFIGURED = 1
-TARGET_REFEXT = out
 else
 # default is an unconfigured
 TARGET_CONFIGURED = 0
 endif
 
+TARGET_CXX = $(TARGET_CC)
 TARGET_BMARKS = $(filter-out $(TARGET_EXCLUDES), $(BMARKS))
 
 CFLAGS = -Wall $(OPT_CFLAGS) -Wno-strict-aliasing $(TARGET_CFLAGS) $(LOCAL_CFLAGS)
@@ -154,32 +154,56 @@ build: $(TARGET_EXE)
 
 %.o: %.c
 	$(TARGET_CC) $(CFLAGS) -I../common/ -I../target/ -o $@ -c $<
+%.o: %.cpp
+	$(TARGET_CXX) $(CFLAGS) $(LOCAL_CXXFLAGS) -I../common/ -I../target/ -o $@ -c $<
 
 ../common/libmin.a: $(LIBMIN_OBJS)
 	$(TARGET_AR) rcs ../common/libmin.a $(LIBMIN_OBJS)
 
-$(TARGET_EXE): $(OBJS) $(LIBS)
-ifeq ($(TARGET), host)
+# Dependency rules for stl-rb vs other benchmarks
+ifeq ($(PROG), stl-rb)
+$(TARGET_EXE): $(LOCAL_OBJS) $(OBJS) $(LIBS)
+else
+$(TARGET_EXE): $(PROG)/$(PROG).o $(OBJS) $(LIBS)
+endif
+
+# Target-specific linking
+ifeq ($(TARGET), host_scalar)
+ifeq ($(PROG), stl-rb)
+	$(TARGET_CXX) $(CFLAGS) $(LOCAL_CXXFLAGS) -o $@ \
+		stl-rb/src/rbtree.o stl-rb/src/test.o ../target/libtarg.o \
+		$(LIBS) $(TARGET_LIBS) -lstdc++ -lpthread
+else
 	$(TARGET_CC) $(CFLAGS) -o $@ $^ $(LIBS) $(TARGET_LIBS)
+endif
+
+else ifeq ($(TARGET), host_vector)
+ifeq ($(PROG), stl-rb)
+	$(TARGET_CXX) $(CFLAGS) $(LOCAL_CXXFLAGS) -o $@ \
+		stl-rb/src/rbtree.o stl-rb/src/test.o ../target/libtarg.o \
+		$(LIBS) $(TARGET_LIBS) -lstdc++ -lpthread
+else
+	$(TARGET_CC) $(CFLAGS) -o $@ $^ $(LIBS) $(TARGET_LIBS)
+endif
+
 else ifeq ($(TARGET), standalone)
 	$(TARGET_CC) $(CFLAGS) -o $@ $^ $(LIBS) $(TARGET_LIBS)
+
 else ifeq ($(TARGET), hashalone-host)
 	$(TARGET_CC) $(CFLAGS) -o $@ $^ $(LIBS) $(TARGET_LIBS)
+
 else ifeq ($(TARGET), hashalone-spike)
-	$(TARGET_CC) $(CFLAGS) -T ../target/spike-map.ld $^ ../target/spike-crt0.S -o $@ $(LIBS) $(TARGET_LIBS)
-else ifeq ($(TARGET), simple)
-	$(TARGET_CC) $(CFLAGS) -T ../target/simple-map.ld $^ ../target/simple-crt0.S -o $@ $(LIBS) $(TARGET_LIBS)
-else ifeq ($(TARGET), spike)
-	$(TARGET_CC) $(CFLAGS) -T ../target/spike-map.ld $^ ../target/spike-crt0.S -o $@ $(LIBS) $(TARGET_LIBS)
-else ifeq ($(TARGET), spike-pk)
 	$(TARGET_CC) $(CFLAGS) -o $@ $^ $(LIBS) $(TARGET_LIBS)
-else
-	$(error MODE is not defined (add: TARGET={host|sa}).)
+
+else ifeq ($(TARGET), simple)
+	$(TARGET_CC) $(CFLAGS) -o $@ $^ $(LIBS) $(TARGET_LIBS)
+
+else ifeq ($(TARGET), spike)
+	$(TARGET_CC) $(CFLAGS) -o $@ $^ $(LIBS) $(TARGET_LIBS)
 endif
 
 clean:
-	rm -f $(PROG).host $(PROG).sa $(PROG).elf $(PROG).hahost $(PROG).haspike *.o ../common/*.o ../target/*.o ../common/libmin.a *.d ../common/*.d core mem.out *.log FOO $(LOCAL_CLEAN) $(TARGET_CLEAN)
-
+	rm -f $(PROG).host_* $(PROG).sa $(PROG).elf $(PROG).hahost $(PROG).haspike *.o ../common/*.o ../target/*.o ../common/libmin.a *.d ../common/*.d core mem.out *.log FOO $(LOCAL_CLEAN) $(TARGET_CLEAN)
 
 #
 # top-level Makefile interfaces
@@ -199,7 +223,7 @@ else
 	  $(MAKE) TARGET=$$TARGET clean build test || exit 1; \
 	  cd .. ; \
 	done
-endif 
+endif
 
 clean-all all-clean:
 	@for _BMARK in $(BMARKS) ; do \

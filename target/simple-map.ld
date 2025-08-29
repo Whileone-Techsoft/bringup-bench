@@ -10,8 +10,8 @@ MEMORY
    BRAM space. Configuration below is for maximum BRAM capacity with Artya A7-35 while letting
    CoreMark run (.vmem of 152.8KB).
 */
-    ram         : ORIGIN = 0x00100000, LENGTH = 0x30000 /* 192 kB */
-    stack       : ORIGIN = 0x00130000, LENGTH = 0x8000  /* 32 kB */
+    ram         : ORIGIN = 0x80000000, LENGTH = 0x30000 /* 192 kB */
+    stack       : ORIGIN = 0x80130000, LENGTH = 0x8000  /* 32 kB */
 }
 
 /* Stack information variables */
@@ -29,7 +29,8 @@ ENTRY(_entry_point)
    We don't read data back from Spike, so fromhost is set to some dummy value:
    we place it just above the top of the stack.
  */
-tohost   = 0x20008;
+/*tohost   = 0x20008;*/
+tohost   = 0xd0580000;
 fromhost = _stack_start + 0x10;
 
 SECTIONS

@@ -1,7 +1,7 @@
 #include "libtarg.h"
 #include "libmin.h"
 
-#if defined(TARGET_HOST) || defined(TARGET_SPIKE_PK)
+#if defined(TARGET_HOST)
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -19,16 +19,22 @@
 #include <stdlib.h>
 
 /* simple system MMAP'ed registers */
-#define SIMPLE_CTRL_BASE   0x20000
+/* #define SIMPLE_CTRL_BASE   0x20000 */
+#define SIMPLE_CTRL_BASE   0xd0580000
 #define SIMPLE_CTRL_OUT    0x00
-#define SIMPLE_CTRL_CTRL   0x08
+/* #define SIMPLE_CTRL_CTRL   0x08 */
+#define SIMPLE_CTRL_CTRL   0x00
 #define SIMPLE_CTRL_HIHASH 0x10
 #define SIMPLE_CTRL_LOHASH 0x14
 
 /* MMAP'ed register accessors */
+#if 0
 #define SIMPLE_DEV_WRITE(addr, val) (*((volatile uint32_t *)(addr)) = val)
 #define SIMPLE_DEV_READ(addr, val) (*((volatile uint32_t *)(addr)))
-
+#endif
+#define SIMPLE_DEV_WRITE(addr, val) (*((volatile uint64_t *)(addr)) = val)
+#define SIMPLE_DEV_READ(addr, val) (*((volatile uint64_t *)(addr)))
+void* _impure_ptr = 0;
 extern inline int
 simple_putchar(char c)
 {
@@ -36,11 +42,18 @@ simple_putchar(char c)
   return c;
 }
 
-__attribute__((noreturn)) extern inline void
+#ifdef TARGET_SIMPLE
+extern void _my_simple_halt();  /* in simple-crt0.s */
+#endif
+
+extern inline void
 simple_halt(void)
 {
-  SIMPLE_DEV_WRITE(SIMPLE_CTRL_BASE + SIMPLE_CTRL_CTRL, 1);
-  simple_halt();
+#ifdef TARGET_SIMPLE
+     _my_simple_halt();
+#else
+     SIMPLE_DEV_WRITE(SIMPLE_CTRL_BASE + SIMPLE_CTRL_CTRL, 0xff);
+#endif
 }
 
 void *
@@ -121,10 +134,10 @@ uint64_t __hashval = FNV64a_INIT;
 #endif /* TARGET_HAHOST */
 
 /* benchmark completed successfully */
-__attribute__((noreturn)) void
+void
 libtarg_success(void)
 {
-#if defined(TARGET_HOST) || defined(TARGET_SPIKE_PK)
+#if defined(TARGET_HOST)
   exit(0);
 #elif defined(TARGET_SA)
   uint64_t spincnt = 0;
@@ -159,10 +172,10 @@ SPIN_SUCCESS_ADDR:
 }
 
 /* benchmark completed with error CODE */
-__attribute__((noreturn)) void
+void
 libtarg_fail(int code)
 {
-#if defined(TARGET_HOST) || defined(TARGET_SPIKE_PK)
+#ifdef TARGET_HOST
   exit(code);
 #elif defined(TARGET_SA)
   uint64_t spincnt = 0;
@@ -188,7 +201,7 @@ SPIN_FAIL_ADDR:
 void
 libtarg_putc(char c)
 {
-#if defined(TARGET_HOST) || defined(TARGET_SPIKE_PK)
+#if defined(TARGET_HOST)
   fputc(c, stdout);
 #elif defined(TARGET_SA)
   /* add to outbuf pool */
@@ -220,23 +233,31 @@ static uint8_t __heap[MAX_HEAP];
 static uint32_t __heap_ptr = 0;
 #endif /* TARGET_HAHOST */
 
+#ifdef TARGET_HOST
+#define MAX_HEAP    (8*1024*1024)
+uint8_t __heap[MAX_HEAP];
+uint32_t __heap_ptr = 0;
+uint8_t* ptr = NULL;
+#endif /* TARGET_HAHOST */
+
 #if defined(TARGET_SIMPLE) || defined(TARGET_SPIKE) || defined(TARGET_HASPIKE)
 #define MAX_HEAP    (32*1024)
 static uint8_t __heap[MAX_HEAP];
 static uint32_t __heap_ptr = 0;
 #endif /* TARGET_SIMPLE || TARGET_SPIKE */
 
+
 /* get some memory */
 void *
 libtarg_sbrk(size_t inc)
 {
-#if defined(TARGET_HOST) || defined(TARGET_SPIKE_PK)
+#if defined(TARGET_NOHOST)
 #if __clang__
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif /* __clang__ */
   return sbrk(inc);
-#elif defined(TARGET_SA) || defined(TARGET_HAHOST) || defined(TARGET_SIMPLE) || defined(TARGET_SPIKE) || defined(TARGET_HASPIKE)
-  uint8_t *ptr = &__heap[__heap_ptr];
+#elif defined(TARGET_SA) || defined(TARGET_HAHOST) || defined(TARGET_SIMPLE) || defined(TARGET_SPIKE) || defined(TARGET_HASPIKE) || defined(TARGET_HOST)
+  ptr = &__heap[__heap_ptr];
   if (inc == 0)
     return ptr;
   
@@ -245,8 +266,53 @@ libtarg_sbrk(size_t inc)
     libtarg_fail(1);
 
   return ptr;
+
 #else
 #error Co-simulation platform not defined, define TARGET_HOST or a target-dependent definition.
 #endif
+
 }
+
+
+#ifdef TIME_REPORT
+long long int start_mytime,stop_mytime,d_mytime;
+long long int start_myinst,stop_myinst,d_myinst;
+
+#ifdef TARGET_SIMPLE
+//#ifdef TARGET_HOST_SCALAR
+void  __start_clock(void) {
+  asm volatile ("fence.i");
+  asm volatile ("csrr %0,minstret"  : "=r" (start_myinst) );
+  asm volatile ("csrr %0,mcycle"  : "=r" (start_mytime) );
+  asm volatile ("fence.i");
+};
+
+inline void __stop_clock(void) {
+  asm volatile ("fence.i");
+  asm volatile ("csrr %0,mcycle"  : "=r" (stop_mytime) );
+  asm volatile ("csrr %0,minstret"  : "=r" (stop_myinst) );
+  asm volatile ("fence.i");
+};
+#else
+void  __start_clock(void) {
+  asm volatile ("fence.i");
+  asm volatile ("csrr %0,instret"  : "=r" (start_myinst) );
+  asm volatile ("csrr %0,cycle"  : "=r" (start_mytime) );
+  asm volatile ("fence.i");
+};
+
+inline void __stop_clock(void) {
+  asm volatile ("fence.i");
+  asm volatile ("csrr %0,cycle"  : "=r" (stop_mytime) );
+  asm volatile ("csrr %0,instret"  : "=r" (stop_myinst) );
+  asm volatile ("fence.i");
+};
+#endif
+
+inline void __print_clock(char* name) {
+  d_mytime = stop_mytime-start_mytime;
+  d_myinst = stop_myinst-start_myinst;
+  libmin_printf("TIME_REPORT:\t%s\tCycles %lld\tInstructions %lld\tIPC %0.2f\n",name,d_mytime,d_myinst,((float)d_myinst/(float)d_mytime));
+}
+#endif
 

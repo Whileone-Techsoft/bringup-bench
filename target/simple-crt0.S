@@ -2,9 +2,9 @@
 # Licensed under the Apache License, Version 2.0, see LICENSE for details.
 # SPDX-License-Identifier: Apache-2.0
 
-#define SIM_CTRL_BASE 0x20000
+#define SIM_CTRL_BASE 0xd0580000
 #define SIM_CTRL_OUT 0x0
-#define SIM_CTRL_CTRL 0x8
+#define SIM_CTRL_CTRL 0x0
 
 #define TIMER_BASE 0x30000
 #define TIMER_MTIME 0x0
@@ -20,7 +20,13 @@ default_exc_handler:
 timer_handler:
   jal x0, simple_timer_handler
 
+
 reset_handler:
+  /* MRAC setup */
+  li t0, 0x59555555
+  csrw 0x7c0, t0
+  li t0, 0x3300   /* enable mstatus.fs and mstatus.vs */
+  csrw 0x300, t0
   /* set all registers to zero */
   mv  x1, x0
   mv  x2, x1
@@ -57,6 +63,7 @@ reset_handler:
   /* stack initilization */
   la   x2, _stack_start
 
+
 _start:
   .global _start
 
@@ -79,10 +86,23 @@ main_entry:
   addi x11, x0, 0
   jal x1, main
 
+.global _my_simple_halt
+_my_simple_halt:
   /* Halt simulation */
   li x5, SIM_CTRL_BASE + SIM_CTRL_CTRL
-  li x6, 1
+  li x6, 0xff
   sw x6, 0(x5)
+  fence.i
+  beq x0, x0, _my_simple_halt
+  nop  
+  nop  
+  nop  
+  nop  
+  nop  
+  nop  
+  nop  
+  nop  
+  nop  
 
   /* If execution ends up here just put the core to sleep */
 sleep_loop:

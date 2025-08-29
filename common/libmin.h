@@ -2,7 +2,8 @@
 #define LIBMIN_H
 
 #include "libtarg.h"
-
+#include <stdint.h>
+#include <stddef.h>
 #define TRUE  1
 #define FALSE 0
 
@@ -11,7 +12,6 @@
    #define LIBMIN_SILENT		- disable all console messages
    #define LIBMIN_HOST		- build to run on Unix host
    #define LIBMIN_TARGET		- build to run on ARM target model
-   #define LIBMIN_MALLOC_ALIGN_BYTES  - minimum allignment of malloc'd regions (optional)
 
 */
 
@@ -382,5 +382,40 @@ uint32_t libmin_fnv32a(void *buf, size_t len, uint32_t hashval);
 #define FNV64a_INIT ((uint64_t)0xcbf29ce484222325ULL)
 
 uint64_t libmin_fnv64a(void *buf, size_t len, uint64_t hashval);
+
+/* Cycle macros and variable */
+#ifdef TIME_REPORT
+void __start_clock(void);
+void __stop_clock(void);
+void __print_clock(char* name);
+
+
+#ifdef TARGET_SIMPLE
+
+#define TIME_START    __start_clock();
+#define TIME_STOP     __stop_clock();
+#define TIME_PRINT(x)    __print_clock(x);
+
+#elif TARGET_HOST
+
+#define TIME_START    __start_clock();
+#define TIME_STOP     __stop_clock();
+#define TIME_PRINT(x)    __print_clock(x);
+
+#elif TARGET_HAHOST
+
+#define TIME_START    __start_clock();
+#define TIME_STOP     __stop_clock();
+#define TIME_PRINT(x)    __print_clock(x);
+
+#endif
+
+#else
+
+#define TIME_START
+#define TIME_STOP
+#define TIME_PRINT
+
+#endif
 
 #endif /* LIBMIN_H */

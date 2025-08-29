@@ -1,7 +1,8 @@
-CXX = g++
+PREF=/proj/perf/data/compilers/release-20240927-centos7/riscv64-unknown-linux-gnu/bin/riscv64-unknown-linux-gnu-
+CXX = ${PREF}g++
 SPIKE_DIR = ../../../riscv-isa-sim/
 
-CFLAGS = -Wall -Werror -g -I $(SPIKE_DIR)
+CFLAGS = -Wall -Werror -g -I $(SPIKE_DIR) 
 
 build: simple_mmio_plugin.so
 
