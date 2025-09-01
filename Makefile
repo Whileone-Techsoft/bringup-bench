@@ -134,7 +134,7 @@ TARGET_CXX = $(TARGET_CC)
 TARGET_BMARKS = $(filter-out $(TARGET_EXCLUDES), $(BMARKS))
 
 CFLAGS = -Wall $(OPT_CFLAGS) -Wno-strict-aliasing $(TARGET_CFLAGS) $(LOCAL_CFLAGS)
-OBJS = $(LOCAL_OBJS) ../target/libtarg.o
+OBJS = $(LOCAL_OBJS) target/libtarg.o
 __LIBMIN_SRCS = libmin_abs.c libmin_acos.c libmin_asin.c libmin_atan.c libmin_atof.c \
   libmin_atoi.c libmin_atol.c libmin_ctype.c libmin_exp.c \
   libmin_fabs.c libmin_fail.c libmin_floor.c libmin_fnv1a.c libmin_getopt.c libmin_malloc.c libmin_mclose.c \
@@ -171,7 +171,7 @@ endif
 ifeq ($(TARGET), host_scalar)
 ifeq ($(PROG), stl-rb)
 	$(TARGET_CXX) $(CFLAGS) $(LOCAL_CXXFLAGS) -o $@ \
-		stl-rb/rbtree.o stl-rb/test.o ../target/libtarg.o \
+		stl-rb/rbtree.o stl-rb/test.o target/libtarg.o \
 		$(LIBS) $(TARGET_LIBS) -lstdc++ -lpthread
 else
 	$(TARGET_CC) $(CFLAGS) -o $@ $^ $(LIBS) $(TARGET_LIBS)
@@ -180,7 +180,7 @@ endif
 else ifeq ($(TARGET), host_vector)
 ifeq ($(PROG), stl-rb)
 	$(TARGET_CXX) $(CFLAGS) $(LOCAL_CXXFLAGS) -o $@ \
-		stl-rb/rbtree.o stl-rb/test.o ../target/libtarg.o \
+		stl-rb/rbtree.o stl-rb/test.o target/libtarg.o \
 		$(LIBS) $(TARGET_LIBS) -lstdc++ -lpthread
 else
 	$(TARGET_CC) $(CFLAGS) -o $@ $^ $(LIBS) $(TARGET_LIBS)
@@ -203,7 +203,7 @@ else ifeq ($(TARGET), spike)
 endif
 
 clean:
-	rm -f $(PROG).host_* $(PROG).sa $(PROG).elf $(PROG).hahost $(PROG).haspike *.o ../common/*.o ../target/*.o ../common/libmin.a *.d ../common/*.d core mem.out *.log FOO $(LOCAL_CLEAN) $(TARGET_CLEAN)
+	rm -f $(PROG).host_* $(PROG).sa $(PROG).elf $(PROG).hahost $(PROG).haspike *.o common/*.o target/*.o common/libmin.a *.d common/*.d core mem.out *.log FOO $(LOCAL_CLEAN) $(TARGET_CLEAN)
 
 #
 # top-level Makefile interfaces
