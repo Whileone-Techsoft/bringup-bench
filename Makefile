@@ -145,20 +145,20 @@ __LIBMIN_SRCS = libmin_abs.c libmin_acos.c libmin_asin.c libmin_atan.c libmin_at
   libmin_strcpy.c libmin_strcspn.c libmin_strdup.c libmin_strlen.c libmin_strncat.c libmin_strncmp.c \
   libmin_strncpy.c libmin_strpbrk.c libmin_strrchr.c libmin_strspn.c libmin_strstr.c libmin_strcasestr.c \
   libmin_strtok.c libmin_strtol.c libmin_success.c libmin_strncasecmp.c
-LIBMIN_SRCS = $(addprefix ../common/,$(basename $(__LIBMIN_SRCS)))
-LIBMIN_OBJS = $(addprefix ../common/,$(addsuffix .o,$(basename $(__LIBMIN_SRCS))))
+LIBMIN_SRCS = $(addprefix common/,$(basename $(__LIBMIN_SRCS)))
+LIBMIN_OBJS = $(addprefix common/,$(addsuffix .o,$(basename $(__LIBMIN_SRCS))))
 
-LIBS = ../common/libmin.a
+LIBS = common/libmin.a
 
 build: $(TARGET_EXE)
 
 %.o: %.c
-	$(TARGET_CC) $(CFLAGS) -I../common/ -I../target/ -o $@ -c $<
+	$(TARGET_CC) $(CFLAGS) -Icommon/ -Itarget/ -o $@ -c $<
 %.o: %.cpp
-	$(TARGET_CXX) $(CFLAGS) $(LOCAL_CXXFLAGS) -I../common/ -I../target/ -o $@ -c $<
+	$(TARGET_CXX) $(CFLAGS) $(LOCAL_CXXFLAGS) -Icommon/ -Itarget/ -o $@ -c $<
 
-../common/libmin.a: $(LIBMIN_OBJS)
-	$(TARGET_AR) rcs ../common/libmin.a $(LIBMIN_OBJS)
+common/libmin.a: $(LIBMIN_OBJS)
+	$(TARGET_AR) rcs common/libmin.a $(LIBMIN_OBJS)
 
 # Dependency rules for stl-rb vs other benchmarks
 ifeq ($(PROG), stl-rb)
