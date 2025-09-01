@@ -171,7 +171,7 @@ endif
 ifeq ($(TARGET), host_scalar)
 ifeq ($(PROG), stl-rb)
 	$(TARGET_CXX) $(CFLAGS) $(LOCAL_CXXFLAGS) -o $@ \
-		stl-rb/src/rbtree.o stl-rb/src/test.o ../target/libtarg.o \
+		stl-rb/rbtree.o stl-rb/test.o ../target/libtarg.o \
 		$(LIBS) $(TARGET_LIBS) -lstdc++ -lpthread
 else
 	$(TARGET_CC) $(CFLAGS) -o $@ $^ $(LIBS) $(TARGET_LIBS)
@@ -180,7 +180,7 @@ endif
 else ifeq ($(TARGET), host_vector)
 ifeq ($(PROG), stl-rb)
 	$(TARGET_CXX) $(CFLAGS) $(LOCAL_CXXFLAGS) -o $@ \
-		stl-rb/src/rbtree.o stl-rb/src/test.o ../target/libtarg.o \
+		stl-rb/rbtree.o stl-rb/test.o ../target/libtarg.o \
 		$(LIBS) $(TARGET_LIBS) -lstdc++ -lpthread
 else
 	$(TARGET_CC) $(CFLAGS) -o $@ $^ $(LIBS) $(TARGET_LIBS)
